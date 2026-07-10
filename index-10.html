@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gungun Periwal — Video Editor</title>
+<meta name="description" content="Gungun Periwal — Video Editor. Selected cuts, graphic design work, and contact.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ink:#0c0b0a;
+    --ink-soft:#141210;
+    --ink-card:#18110d;
+    --bone:#ece7df;
+    --bone-dim:#c9c3b8;
+    --ash:#8a8479;
+    --ember:#c9642c;
+    --ember-dim:#8a4a24;
+    --line:#2a2621;
+    --line-soft:#201c18;
+    --fs-display: clamp(3.2rem, 9vw, 8.5rem);
+    --fs-h2: clamp(2.1rem, 4.6vw, 3.6rem);
+    --fs-h3: clamp(1.3rem, 2.2vw, 1.7rem);
+    --container: 1240px;
+    --edge: clamp(1.5rem, 5vw, 4rem);
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    *{animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important;}
+  }
+
+  body{
+    background:var(--ink);
+    color:var(--bone);
+    font-family:'Inter', sans-serif;
+    font-weight:400;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* film grain overlay */
+  .grain{
+    position:fixed; inset:0; z-index:200; pointer-events:none;
+    opacity:0.035; mix-blend-mode:overlay;
+  }
+
+  /* vignette */
+  body::before{
+    content:"";
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background: radial-gradient(ellipse at 50% 0%, rgba(201,100,44,0.06), transparent 55%),
+                radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.5), transparent 60%);
+  }
+
+  .display{font-family:'Fraunces', serif; font-weight:500;}
+  .display-italic{font-family:'Fraunces', serif; font-weight:500; font-style:italic;}
+  .mono{font-family:'IBM Plex Mono', monospace; letter-spacing:0.04em;}
+
+  .wrap{max-width:var(--container); margin:0 auto; padding-left:var(--edge); padding-right:var(--edge);}
+
+  a{color:inherit; text-decoration:none;}
+  ::selection{background:var(--ember); color:var(--ink);}
+
+  :focus-visible{outline:1.5px solid var(--ember); outline-offset:4px;}
+
+  /* ---------- NAV ---------- */
+  header.nav{
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    padding:1.4rem var(--edge);
+    display:flex; align-items:center; justify-content:space-between;
+    transition:background-color .4s ease, border-color .4s ease, padding .4s ease;
+    border-bottom:1px solid transparent;
+  }
+  header.nav.scrolled{
+    background:rgba(12,11,10,0.86);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+    padding-top:1rem; padding-bottom:1rem;
+  }
+  .nav-mark{
+    font-family:'Fraunces', serif; font-style:italic; font-weight:500;
+    font-size:1.05rem; letter-spacing:0.02em; color:var(--bone);
+  }
+  .nav-links{display:flex; gap:2.4rem; align-items:center;}
+  .nav-links a{
+    font-family:'IBM Plex Mono', monospace; font-size:0.72rem;
+    letter-spacing:0.12em; text-transform:uppercase; color:var(--ash);
+    position:relative; padding-bottom:3px;
+  }
+  .nav-links a::after{
+    content:""; position:absolute; left:0; bottom:0; width:0; height:1px;
+    background:var(--ember); transition:width .35s ease;
+  }
+  .nav-links a:hover{color:var(--bone);}
+  .nav-links a:hover::after{width:100%;}
+  .nav-toggle{display:none; background:none; border:1px solid var(--line); color:var(--bone); width:38px; height:38px; border-radius:2px; cursor:pointer;}
+
+  @media (max-width:760px){
+    .nav-links{
+      position:fixed; top:0; right:0; height:100vh; width:70vw; max-width:320px;
+      background:var(--ink-soft); border-left:1px solid var(--line);
+      flex-direction:column; justify-content:center; align-items:flex-start;
+      gap:2rem; padding:2rem; transform:translateX(100%);
+      transition:transform .45s cubic-bezier(.7,0,.2,1);
+    }
+    .nav-links.open{transform:translateX(0);}
+    .nav-toggle{display:block;}
+  }
+
+  /* ---------- REVEAL ---------- */
+  [data-reveal]{opacity:0; transform:translateY(22px); transition:opacity .9s cubic-bezier(.16,.8,.2,1), transform .9s cubic-bezier(.16,.8,.2,1);}
+  [data-reveal].in-view{opacity:1; transform:translateY(0);}
+  [data-reveal="stagger"] > *{transition-delay:calc(var(--i, 0) * 90ms);}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    min-height:100svh; display:flex; flex-direction:column; justify-content:center;
+    position:relative; padding-top:6rem; padding-bottom:4rem;
+  }
+  .hero-eyebrow{
+    display:flex; align-items:center; gap:0.6rem;
+    font-family:'IBM Plex Mono', monospace; font-size:0.72rem; letter-spacing:0.16em;
+    text-transform:uppercase; color:var(--ash); margin-bottom:2rem;
+  }
+  .rec-dot{width:6px; height:6px; border-radius:50%; background:var(--ember); animation:pulse 2.2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:0.25;}}
+
+  .hero h1{
+    font-size:var(--fs-display); line-height:0.96; font-weight:500;
+    letter-spacing:-0.01em; color:var(--bone);
+  }
+  .hero h1 em{
+    font-style:italic; color:var(--ember); font-weight:500;
+  }
+  .hero-sub{
+    max-width:34rem; margin-top:2.4rem; font-size:1.05rem; color:var(--bone-dim);
+    font-weight:400;
+  }
+  .hero-meta{
+    display:flex; gap:3rem; margin-top:3.4rem; flex-wrap:wrap;
+  }
+  .hero-meta .item{border-left:1px solid var(--line); padding-left:1rem;}
+  .hero-meta .item .k{font-family:'IBM Plex Mono', monospace; font-size:0.68rem; letter-spacing:0.12em; color:var(--ash); text-transform:uppercase; display:block; margin-bottom:0.35rem;}
+  .hero-meta .item .v{font-size:0.92rem; color:var(--bone-dim);}
+
+  .timecode{
+    position:absolute; top:6.4rem; right:var(--edge);
+    font-family:'IBM Plex Mono', monospace; font-size:0.72rem; color:var(--ash);
+    letter-spacing:0.08em;
+  }
+  @media (max-width:760px){ .timecode{display:none;} }
+
+  .scroll-cue{
+    position:absolute; bottom:2.4rem; left:var(--edge);
+    display:flex; align-items:center; gap:0.7rem;
+    font-family:'IBM Plex Mono', monospace; font-size:0.68rem; letter-spacing:0.12em;
+    text-transform:uppercase; color:var(--ash);
+  }
+  .scroll-cue .stem{width:1px; height:34px; background:linear-gradient(var(--ember), transparent); animation:stem 2.4s ease-in-out infinite;}
+  @keyframes stem{0%{transform:scaleY(0.4); transform-origin:top;} 50%{transform:scaleY(1); transform-origin:top;} 100%{transform:scaleY(0.4); transform-origin:top;}}
+
+  /* ---------- SECTION HEADERS ---------- */
+  section{position:relative; padding:7.5rem 0; z-index:1;}
+  .sec-head{display:flex; justify-content:space-between; align-items:flex-end; gap:2rem; margin-bottom:3.6rem; flex-wrap:wrap;}
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:0.72rem; letter-spacing:0.16em;
+    text-transform:uppercase; color:var(--ember); margin-bottom:0.9rem; display:block;
+  }
+  .sec-head h2{font-size:var(--fs-h2); font-weight:500; letter-spacing:-0.01em; max-width:26rem;}
+  .sec-head .note{max-width:20rem; color:var(--ash); font-size:0.9rem; padding-bottom:0.4rem;}
+
+  .hr{height:1px; background:var(--line); width:100%; border:none;}
+
+  /* ---------- WORK GRID ---------- */
+  .work-grid{
+    display:grid; grid-template-columns:repeat(2, 1fr); gap:2.4rem 2rem;
+  }
+  @media (max-width:820px){ .work-grid{grid-template-columns:1fr;} }
+
+  .card{cursor:pointer;}
+  .frame{
+    position:relative; width:100%; aspect-ratio:16/9; overflow:hidden;
+    background:var(--ink-card); border:1px solid var(--line);
+  }
+  .frame .bg{
+    position:absolute; inset:-10%; width:120%; height:120%;
+    background-size:cover; background-position:center;
+    filter:blur(28px) brightness(0.42) saturate(1.05);
+    transform:scale(1.05);
+    transition:filter .6s ease;
+  }
+  .frame .fg-wrap{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  }
+  .frame .fg{
+    height:100%; width:auto; max-width:64%; object-fit:cover;
+    box-shadow:0 20px 50px rgba(0,0,0,0.55);
+    transition:transform .7s cubic-bezier(.16,.8,.2,1);
+  }
+  .card:hover .fg{transform:scale(1.035);}
+  .card:hover .bg{filter:blur(28px) brightness(0.5) saturate(1.1);}
+
+  .corner{position:absolute; width:16px; height:16px; opacity:0; transition:opacity .35s ease, transform .35s ease;}
+  .corner.tl{top:10px; left:10px; border-top:1px solid var(--ember); border-left:1px solid var(--ember); transform:translate(4px,4px);}
+  .corner.tr{top:10px; right:10px; border-top:1px solid var(--ember); border-right:1px solid var(--ember); transform:translate(-4px,4px);}
+  .corner.bl{bottom:10px; left:10px; border-bottom:1px solid var(--ember); border-left:1px solid var(--ember); transform:translate(4px,-4px);}
+  .corner.br{bottom:10px; right:10px; border-bottom:1px solid var(--ember); border-right:1px solid var(--ember); transform:translate(-4px,-4px);}
+  .card:hover .corner{opacity:1; transform:translate(0,0);}
+
+  .play-hint{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    opacity:0; transition:opacity .35s ease;
+  }
+  .card:hover .play-hint{opacity:1;}
+  .play-hint span{
+    width:52px; height:52px; border-radius:50%; border:1px solid rgba(236,231,223,0.5);
+    display:flex; align-items:center; justify-content:center; backdrop-filter:blur(2px);
+  }
+
+  .card-meta{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-top:1rem; padding-bottom:1rem; border-bottom:1px solid var(--line-soft);
+  }
+  .card-meta .title{font-family:'Fraunces', serif; font-style:italic; font-size:1.05rem; color:var(--bone-dim);}
+  .card-meta .tc{font-family:'IBM Plex Mono', monospace; font-size:0.7rem; color:var(--ash); letter-spacing:0.06em;}
+
+  /* ---------- MODAL ---------- */
+  .modal-backdrop{
+    position:fixed; inset:0; z-index:300; background:rgba(8,7,6,0.92);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .35s ease;
+    padding:2rem;
+  }
+  .modal-backdrop.open{opacity:1; pointer-events:auto;}
+  .modal-inner{
+    position:relative; width:min(420px, 90vw);
+    aspect-ratio:9/16; max-height:85vh;
+    background:#000; border:1px solid var(--line);
+    transform:scale(0.96); transition:transform .35s ease;
+  }
+  .modal-backdrop.open .modal-inner{transform:scale(1);}
+  .modal-inner iframe{width:100%; height:100%; border:0;}
+  .modal-close{
+    position:absolute; top:-2.6rem; right:0; background:none; border:none; cursor:pointer;
+    color:var(--bone-dim); font-family:'IBM Plex Mono', monospace; font-size:0.72rem; letter-spacing:0.1em;
+    display:flex; align-items:center; gap:0.5rem;
+  }
+  .modal-close:hover{color:var(--ember);}
+
+  /* ---------- ABOUT ---------- */
+  .about-grid{
+    display:grid; grid-template-columns:0.9fr 1.4fr; gap:4rem; align-items:start;
+  }
+  @media (max-width:820px){ .about-grid{grid-template-columns:1fr; gap:2.4rem;} }
+  .about-grid p{font-size:1.08rem; color:var(--bone-dim); max-width:34rem;}
+  .quote{
+    font-family:'Fraunces', serif; font-style:italic; font-weight:500;
+    font-size:1.5rem; color:var(--ember); margin-top:2.2rem; max-width:24rem;
+  }
+
+  /* ---------- DESIGN SECTION ---------- */
+  .design-panel{
+    border:1px solid var(--line); padding:clamp(2rem, 5vw, 3.6rem);
+    display:flex; justify-content:space-between; align-items:center; gap:2rem; flex-wrap:wrap;
+    background:linear-gradient(180deg, var(--ink-soft), var(--ink));
+  }
+  .design-panel .left{max-width:32rem;}
+  .design-panel h3{font-size:var(--fs-h3); font-weight:500; margin-bottom:0.9rem;}
+  .design-panel p{color:var(--ash); font-size:0.96rem;}
+
+  .btn{
+    display:inline-flex; align-items:center; gap:0.6rem;
+    font-family:'IBM Plex Mono', monospace; font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--ink); background:var(--bone); padding:0.95rem 1.6rem;
+    border:1px solid var(--bone); white-space:nowrap;
+    transition:background-color .3s ease, color .3s ease, border-color .3s ease;
+  }
+  .btn:hover{background:transparent; color:var(--bone); border-color:var(--bone);}
+  .btn.outline{background:transparent; color:var(--bone); border-color:var(--line);}
+  .btn.outline:hover{border-color:var(--ember); color:var(--ember);}
+
+  /* ---------- CONTACT ---------- */
+  .contact-list{margin-top:2.6rem; border-top:1px solid var(--line);}
+  .contact-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:1.6rem 0; border-bottom:1px solid var(--line);
+    transition:padding-left .35s ease;
+  }
+  .contact-row:hover{padding-left:0.6rem;}
+  .contact-row .k{font-family:'IBM Plex Mono', monospace; font-size:0.7rem; letter-spacing:0.12em; color:var(--ash); text-transform:uppercase;}
+  .contact-row .v{
+    font-family:'Fraunces', serif; font-size:clamp(1.2rem, 3vw, 1.9rem); font-style:italic; color:var(--bone);
+    position:relative;
+  }
+  .contact-row a.v::after{
+    content:""; position:absolute; left:0; bottom:-4px; width:0; height:1px; background:var(--ember);
+    transition:width .4s ease;
+  }
+  .contact-row a.v:hover::after{width:100%;}
+  .contact-row .arrow{color:var(--ash); font-family:'IBM Plex Mono', monospace; transition:transform .35s ease, color .35s ease;}
+  .contact-row:hover .arrow{transform:translateX(4px); color:var(--ember);}
+
+  /* ---------- FOOTER ---------- */
+  footer{padding:3rem 0 2.4rem; border-top:1px solid var(--line);}
+  .foot-row{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;}
+  .foot-row .mono{font-size:0.7rem; color:var(--ash); letter-spacing:0.08em;}
+
+  h2, h3{color:var(--bone);}
+</style>
+</head>
+<body>
+
+<svg class="grain" width="100%" height="100%">
+  <filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/></filter>
+  <rect width="100%" height="100%" filter="url(#noise)"/>
+</svg>
+
+<header class="nav" id="siteNav">
+  <a href="#top" class="nav-mark">Gungun Periwal</a>
+  <nav class="nav-links" id="navLinks">
+    <a href="#work">Work</a>
+    <a href="#about">About</a>
+    <a href="#design">Design</a>
+    <a href="#contact">Contact</a>
+  </nav>
+  <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">☰</button>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero wrap">
+    <div class="hero-eyebrow"><span class="rec-dot"></span> Video Editor — Based in India</div>
+    <h1 class="display">Gungun<br><em>Periwal</em></h1>
+    <p class="hero-sub">I cut footage into stories people actually want to watch — two years of graphic design behind me, a growing reel of edits ahead. Currently open to video editing roles where I can learn from experienced teams and sharpen the craft.</p>
+    <div class="hero-meta">
+      <div class="item"><span class="k">Focus</span><span class="v">Short-form &amp; Reels</span></div>
+      <div class="item"><span class="k">Background</span><span class="v">Graphic Design → Editing</span></div>
+      <div class="item"><span class="k">Status</span><span class="v">Open to opportunities</span></div>
+    </div>
+    <div class="timecode mono" id="timecode">00:00:00:00</div>
+    <div class="scroll-cue"><span class="stem"></span> Scroll</div>
+  </section>
+
+  <!-- SELECTED WORK -->
+  <section id="work" class="wrap">
+    <div class="sec-head" data-reveal>
+      <div>
+        <span class="eyebrow">Selected Work</span>
+        <h2 class="display">A short reel<br>of recent cuts.</h2>
+      </div>
+      <p class="note">Vertical edits, framed for the desktop. Click any piece to open the full cut.</p>
+    </div>
+
+    <div class="work-grid" data-reveal="stagger" id="workGrid">
+      <!-- cards injected by JS -->
+    </div>
+  </section>
+
+  <hr class="hr wrap" style="width:auto;">
+
+  <!-- ABOUT -->
+  <section id="about" class="wrap">
+    <div class="about-grid">
+      <div data-reveal>
+        <span class="eyebrow">About</span>
+        <h2 class="display" style="font-size:var(--fs-h3);">Notes on the editor</h2>
+      </div>
+      <div data-reveal>
+        <p>With two years of experience in graphic design and a strong foundation in video editing, I enjoy turning ideas into engaging visual content. I'm currently looking for video editing opportunities where I can apply my skills, learn from experienced teams, and keep growing as an editor.</p>
+        <p class="quote">"Every cut is a decision."</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- GRAPHIC DESIGN -->
+  <section id="design" class="wrap">
+    <div data-reveal>
+      <span class="eyebrow">Also</span>
+    </div>
+    <div class="design-panel" data-reveal>
+      <div class="left">
+        <h3 class="display">Graphic Design Archive</h3>
+        <p>Before the timeline, there was the layout. A small, separate collection of graphic design work — posters, social layouts, and brand visuals — lives in its own folder.</p>
+      </div>
+      <a class="btn" href="https://drive.google.com/drive/folders/1ekvRTJVeCzCNxa4J0CYXvsKtDpxRz05d?usp=drive_link" target="_blank" rel="noopener">View Graphic Design Portfolio →</a>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact" class="wrap">
+    <div data-reveal>
+      <span class="eyebrow">Contact</span>
+      <h2 class="display">Let's work<br>together.</h2>
+    </div>
+
+    <div class="contact-list" data-reveal>
+      <div class="contact-row">
+        <div><span class="k">Email</span><br><a class="v" href="mailto:periwalgungun@gmail.com">periwalgungun@gmail.com</a></div>
+        <span class="arrow mono">↗</span>
+      </div>
+      <div class="contact-row">
+        <div><span class="k">Phone</span><br><a class="v" href="tel:+919332656510">+91 93326 56510</a></div>
+        <span class="arrow mono">↗</span>
+      </div>
+      <div class="contact-row">
+        <div><span class="k">LinkedIn</span><br><a class="v" href="https://www.linkedin.com/in/gungun-periwal-a125452ab" target="_blank" rel="noopener">gungun-periwal</a></div>
+        <span class="arrow mono">↗</span>
+      </div>
+    </div>
+  </section>
+
+  <footer class="wrap">
+    <div class="foot-row">
+      <span class="mono">© 2026 Gungun Periwal — Video Editor</span>
+      <span class="mono">Crafted frame by frame.</span>
+    </div>
+  </footer>
+
+</main>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal-inner">
+    <button class="modal-close" id="modalClose">CLOSE <span aria-hidden="true">✕</span></button>
+    <iframe id="modalIframe" src="" allow="autoplay" allowfullscreen title="Video player"></iframe>
+  </div>
+</div>
+
+<script>
+  // ---- Video data ----
+  const videos = [
+    { id: "1-IZuc5BMjIwgKMG24_hDN2nq0cGos_Jd", label: "Edit 01" },
+    { id: "1vucliHeW-gg52eWKw4IxEkzdmv41JQ3J", label: "Edit 02" },
+    { id: "1UMEBpTkZMyIMzAi8pK1R_LwIGsvKmHdN", label: "Edit 03" },
+    { id: "1KjLyjhCulpJUe5wtqb8GghIUgUa4VTqR", label: "Edit 04" },
+    { id: "1AvNtHU9kOvfQwmnSv-IoKJWDdrrmspeS", label: "Edit 05" },
+    { id: "153PCLaFWlE7plFhSSu3guocTOhpsbmNR", label: "Edit 06" },
+  ];
+
+  const grid = document.getElementById('workGrid');
+  videos.forEach((v, i) => {
+    const thumb = `https://drive.google.com/thumbnail?id=${v.id}&sz=w1000`;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.setProperty('--i', i);
+    card.innerHTML = `
+      <div class="frame">
+        <div class="bg" style="background-image:url('${thumb}')"></div>
+        <div class="fg-wrap"><img class="fg" src="${thumb}" alt="${v.label} thumbnail" loading="lazy"></div>
+        <span class="corner tl"></span><span class="corner tr"></span>
+        <span class="corner bl"></span><span class="corner br"></span>
+        <div class="play-hint"><span>▶</span></div>
+      </div>
+      <div class="card-meta">
+        <span class="title">${v.label}</span>
+        <span class="tc mono">0${i+1} / 0${videos.length}</span>
+      </div>
+    `;
+    card.addEventListener('click', () => openModal(v.id));
+    grid.appendChild(card);
+  });
+
+  // ---- Modal ----
+  const backdrop = document.getElementById('modalBackdrop');
+  const iframe = document.getElementById('modalIframe');
+  function openModal(id){
+    iframe.src = `https://drive.google.com/file/d/${id}/preview`;
+    backdrop.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal(){
+    backdrop.classList.remove('open');
+    iframe.src = '';
+    document.body.style.overflow = '';
+  }
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  backdrop.addEventListener('click', (e) => { if(e.target === backdrop) closeModal(); });
+  document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeModal(); });
+
+  // ---- Nav scroll state + mobile toggle ----
+  const nav = document.getElementById('siteNav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+  });
+  const navToggle = document.getElementById('navToggle');
+  const navLinks = document.getElementById('navLinks');
+  navToggle.addEventListener('click', () => navLinks.classList.toggle('open'));
+  navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => navLinks.classList.remove('open')));
+
+  // ---- Scroll reveal ----
+  const revealEls = document.querySelectorAll('[data-reveal]');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting){
+        entry.target.classList.add('in-view');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  revealEls.forEach(el => io.observe(el));
+
+  // stagger children of work grid individually
+  const cardEls = document.querySelectorAll('.card');
+  const cardIo = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting){
+        entry.target.style.transition = `opacity .8s cubic-bezier(.16,.8,.2,1) ${entry.target.style.getPropertyValue('--i')*80}ms, transform .8s cubic-bezier(.16,.8,.2,1) ${entry.target.style.getPropertyValue('--i')*80}ms`;
+        entry.target.style.opacity = 1;
+        entry.target.style.transform = 'translateY(0)';
+        cardIo.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  cardEls.forEach(el => {
+    el.style.opacity = 0;
+    el.style.transform = 'translateY(24px)';
+    cardIo.observe(el);
+  });
+
+  // ---- Timecode ticker ----
+  const tc = document.getElementById('timecode');
+  let frame = 0;
+  const start = Date.now();
+  function pad(n){ return n.toString().padStart(2,'0'); }
+  setInterval(() => {
+    const elapsed = Date.now() - start;
+    const totalFrames = Math.floor(elapsed / (1000/24));
+    const ff = totalFrames % 24;
+    const totalSec = Math.floor(elapsed/1000);
+    const ss = totalSec % 60;
+    const mm = Math.floor(totalSec/60) % 60;
+    const hh = Math.floor(totalSec/3600);
+    tc.textContent = `${pad(hh)}:${pad(mm)}:${pad(ss)}:${pad(ff)}`;
+  }, 1000/24);
+</script>
+
+</body>
+</html>
